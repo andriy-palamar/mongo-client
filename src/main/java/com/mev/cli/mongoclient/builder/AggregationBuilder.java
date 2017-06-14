@@ -4,6 +4,7 @@ import static org.springframework.data.mongodb.core.aggregation.Aggregation.newA
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
@@ -16,10 +17,8 @@ public class AggregationBuilder {
 	private List<AggregationOperation> aggregationOperations = new ArrayList<>();
 
 	public AggregationBuilder addAggregationOperation(AggregationOperation aggregationOperation) {
-		if (aggregationOperation != ExpressionUtil.EMPTY_EXPRESSION) {
-			aggregationOperations.add(aggregationOperation);
-		}
-
+		Optional.ofNullable(aggregationOperation).ifPresent(agg -> aggregationOperations.add(agg));
+		
 		return this;
 	}
 
@@ -28,7 +27,7 @@ public class AggregationBuilder {
 				ExpressionUtil.EMPTY_AGGREGATION : newAggregation(aggregationOperations);
 		
 		aggregationOperations = new ArrayList<>();
-		
+
 		return aggregation;
 	}
 

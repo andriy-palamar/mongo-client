@@ -1,5 +1,7 @@
 package com.mev.cli.mongoclient.expression.impl;
 
+import java.util.Optional;
+
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
 import org.springframework.stereotype.Component;
@@ -29,7 +31,9 @@ public class LimitExpression extends Expression<AggregationOperation> {
 		
 		Limit limit = plainSelect.getLimit();
 		
-		return limit == null ? null : Aggregation.limit(limit.getRowCount());
+		return Optional.ofNullable(limit)
+				.map(lim -> Aggregation.limit(limit.getRowCount()))
+				.orElse(null);
 	}
 
 }

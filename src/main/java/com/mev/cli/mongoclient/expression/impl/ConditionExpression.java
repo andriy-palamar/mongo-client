@@ -1,5 +1,7 @@
 package com.mev.cli.mongoclient.expression.impl;
 
+import java.util.Optional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
@@ -9,7 +11,6 @@ import org.springframework.stereotype.Component;
 import com.fathzer.soft.javaluator.AbstractEvaluator;
 import com.mev.cli.mongoclient.util.ExpressionUtil;
 
-import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
@@ -35,21 +36,16 @@ public class ConditionExpression extends com.mev.cli.mongoclient.expression.Expr
 
 	private AggregationOperation getConditionOperationFromSelect(Statement statement) {
 		PlainSelect plainSelect = ExpressionUtil.getPlainSelect(statement);
-		Expression expression = plainSelect.getWhere();
-
-		if (expression == null) {
-			return ExpressionUtil.EMPTY_AGGREGATION_OPERATION;
-		}
 		
-		String condition = expression.toString();
-		
-		Criteria criteria = sqlConditionEvaluator.evaluate(condition);
+		return Optional.ofNullable(plainSelect.getWhere()).map(expression -> {
+			String condition = expression.toString();
 
-		if (criteria == null) {
-			return ExpressionUtil.EMPTY_AGGREGATION_OPERATION;
-		}
+			Criteria criteria = sqlConditionEvaluator.evaluate(condition);
 
-		return Aggregation.match(criteria);
+			return Optional.ofNullable(criteria)
+					.map(cr -> Aggregation.match(cr))
+					.orElse(null);
+		}).orElse(null);
 	}
 
 }

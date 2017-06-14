@@ -2,6 +2,7 @@ package com.mev.cli.mongoclient.executor.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +19,6 @@ import com.mev.cli.mongoclient.executor.MongoExecutor;
 import com.mev.cli.mongoclient.expression.Expression;
 import com.mev.cli.mongoclient.factory.TextProcessorFactory;
 import com.mev.cli.mongoclient.processor.SQLTextProcessor;
-import com.mev.cli.mongoclient.util.ExpressionUtil;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
@@ -59,12 +59,10 @@ public class SQLQueryMongoExecutor implements MongoExecutor<List<String>> {
 			String collectionName = targetExpression.interpret(statement);
 
 			Aggregation aggregation = sqlTextProcessor.process(query);
-
-			if (aggregation != ExpressionUtil.EMPTY_AGGREGATION) {
-				return getDocumentsFromCollectionByAggregation(aggregation, collectionName);
-			} else {
-				return getAllDocumentsFromCollection(collectionName);
-			}
+			
+			return Optional.ofNullable(aggregation)
+					.map(agg -> getDocumentsFromCollectionByAggregation(agg, collectionName))
+	                .orElse(getAllDocumentsFromCollection(collectionName));
 		} catch (JSQLParserException e) {
 			throw new TextProcessorException(e);
 		}
@@ -73,7 +71,8 @@ public class SQLQueryMongoExecutor implements MongoExecutor<List<String>> {
 	private List<String> getDocumentsFromCollectionByAggregation(Aggregation aggregation, String collectionName) {
 		List<String> jsonResults = new ArrayList<>();
 
-		AggregationResults<Object> aggregationResults = mongoTemplate.aggregate(aggregation, collectionName, Object.class);
+		AggregationResults<Object> aggregationResults = mongoTemplate.aggregate(aggregation, collectionName,
+				Object.class);
 		aggregationResults.forEach(a -> jsonResults.add(a.toString()));
 
 		return jsonResults;

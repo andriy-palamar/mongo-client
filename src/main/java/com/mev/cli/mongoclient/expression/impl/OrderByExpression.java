@@ -1,6 +1,7 @@
 package com.mev.cli.mongoclient.expression.impl;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Sort;
@@ -13,7 +14,6 @@ import com.mev.cli.mongoclient.expression.Expression;
 import com.mev.cli.mongoclient.util.ExpressionUtil;
 
 import net.sf.jsqlparser.statement.Statement;
-import net.sf.jsqlparser.statement.select.OrderByElement;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
 
@@ -31,35 +31,34 @@ public class OrderByExpression extends Expression<AggregationOperation> {
 
 	private AggregationOperation getOrderByOperationFromSelect(Statement statement) {
 		PlainSelect plainSelect = ExpressionUtil.getPlainSelect(statement);
+		
+		return Optional.ofNullable(getOrderByOperations(plainSelect))
+			.map(orderByOperations -> {
+				String[] orderByOperationsArray = new String[orderByOperations.size()];
+				orderByOperationsArray = orderByOperations.toArray(orderByOperationsArray);
 
-		List<String> orderByOperations = getOrderByOperations(plainSelect);
+				String lastOrderByItem = orderByOperationsArray[orderByOperationsArray.length - 1];
+				Sort.Direction sortDirection;
+				if (lastOrderByItem.contains(SQLKeywordEnum.DESC.toString())) {
+					sortDirection = Sort.Direction.DESC;
+				} else {
+					sortDirection = Sort.Direction.ASC;
+				}
 
-		if (orderByOperations == null) {
-			return ExpressionUtil.EMPTY_AGGREGATION_OPERATION;
-		}
+				orderByOperationsArray[orderByOperationsArray.length - 1] = lastOrderByItem
+						.replaceAll(SQLKeywordEnum.DESC.toString() + "|" + SQLKeywordEnum.ASC.toString(), "").trim();
 
-		String[] orderByOperationsArray = new String[orderByOperations.size()];
-		orderByOperationsArray = orderByOperations.toArray(orderByOperationsArray);
-
-		String lastOrderByItem = orderByOperationsArray[orderByOperationsArray.length - 1];
-		Sort.Direction sortDirection;
-		if (lastOrderByItem.contains(SQLKeywordEnum.DESC.toString())) {
-			sortDirection = Sort.Direction.DESC;
-		} else {
-			sortDirection = Sort.Direction.ASC;
-		}
-
-		orderByOperationsArray[orderByOperationsArray.length - 1] = lastOrderByItem
-				.replaceAll(SQLKeywordEnum.DESC.toString() + "|" + SQLKeywordEnum.ASC.toString(), "").trim();
-
-		return Aggregation.sort(sortDirection, orderByOperationsArray);
+				return Aggregation.sort(sortDirection, orderByOperationsArray);
+			}).orElse(null);
 	}
 
 	private List<String> getOrderByOperations(PlainSelect plainSelect) {
-		List<OrderByElement> orderByElements = plainSelect.getOrderByElements();
-		return orderByElements == null ? null : orderByElements.stream()
-													.map((item) -> item.toString())
-													.collect(Collectors.toList());
+		return Optional.ofNullable(plainSelect.getOrderByElements())
+				.map(orderByElements -> {
+					return orderByElements.stream()
+							.map((item) -> item.toString())
+							.collect(Collectors.toList());
+				}).orElse(null);
 	}
 
 }

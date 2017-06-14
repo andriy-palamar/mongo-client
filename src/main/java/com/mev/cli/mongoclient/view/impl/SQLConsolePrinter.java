@@ -14,7 +14,7 @@ public class SQLConsolePrinter implements ConsolePrinter<List<String>> {
 		if (jsonResults.size() != 0) {
 			jsonResults.stream().forEach((o) -> System.out.println(o.toString()));
 		} else {
-			System.out.println("Found no values!");
+			System.out.println("No values found!");
 		}
 	}
 

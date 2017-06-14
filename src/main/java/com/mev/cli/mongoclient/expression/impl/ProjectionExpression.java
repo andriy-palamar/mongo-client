@@ -1,6 +1,7 @@
 package com.mev.cli.mongoclient.expression.impl;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
@@ -28,17 +29,14 @@ public class ProjectionExpression extends Expression<AggregationOperation> {
 	
 	private AggregationOperation getAggregationOperation(Statement statement) {
 		PlainSelect plainSelect = ExpressionUtil.getPlainSelect(statement);
-
-		List<String> projections = getProjections(plainSelect);
 		
-		if (projections == ExpressionUtil.EMPTY_PROJECTIONS) {
-			return ExpressionUtil.EMPTY_AGGREGATION_OPERATION;
-		}
-
-		String[] projectionsArray = new String[projections.size()];
-		projectionsArray = projections.toArray(projectionsArray);
-		
-		return Aggregation.project(projectionsArray);
+		return Optional.ofNullable(getProjections(plainSelect))
+				.map(projections -> {
+					String[] projectionsArray = new String[projections.size()];
+					projectionsArray = projections.toArray(projectionsArray);
+					
+					return Aggregation.project(projectionsArray);
+				}).orElse(null);
 	}
 	
 	private List<String> getProjections(PlainSelect plainSelect) {

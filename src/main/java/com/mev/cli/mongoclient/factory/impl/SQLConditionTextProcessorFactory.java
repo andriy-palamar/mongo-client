@@ -1,11 +1,12 @@
 package com.mev.cli.mongoclient.factory.impl;
 
+import java.util.Optional;
+
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Component;
 
 import com.mev.cli.mongoclient.exception.TextProcessorFactoryException;
-import com.mev.cli.mongoclient.exception.UnsupportedTextProcessorException;
 import com.mev.cli.mongoclient.factory.TextProcessorFactory;
 
 @Component("sqlConditionTextProcessorFactory")
@@ -27,11 +28,18 @@ public class SQLConditionTextProcessorFactory implements TextProcessorFactory<Cr
 
 	@Override
 	public Criteria getObjectByQuery(String query)
-			throws TextProcessorFactoryException, UnsupportedTextProcessorException {
-		String[] values = query.split(SPLIT_QUERY);
+			throws TextProcessorFactoryException {
+		Optional.ofNullable(query).orElseThrow(TextProcessorFactoryException::new);
 
-		values[0] = values[0].trim();
-		values[1] = values[1].trim().replaceAll("\"|'", "");
+		String[] values;
+		try {
+			values = query.split(SPLIT_QUERY);
+
+			values[0] = values[0].trim();
+			values[1] = values[1].trim().replaceAll("\"|'", "");
+		} catch(Exception e) {
+			throw new TextProcessorFactoryException();
+		}
 		
 		Object typedValue = getTypedValue(values[1]);
 
@@ -39,16 +47,16 @@ public class SQLConditionTextProcessorFactory implements TextProcessorFactory<Cr
 			return Criteria.where(values[0]).gte(typedValue);
 		} else if (query.contains(LESS_EQUALS)) {
 			return Criteria.where(values[0]).lte(typedValue);
-		} else if (query.contains(EQUALS)) {
-			return Criteria.where(values[0]).is(typedValue);
 		} else if (query.contains(NOT_EQUALS1) || query.contains(NOT_EQUALS2)) {
 			return Criteria.where(values[0]).ne(typedValue);
+		} else if (query.contains(EQUALS)) {
+			return Criteria.where(values[0]).is(typedValue);
 		} else if (query.contains(GREATER)) {
 			return Criteria.where(values[0]).gt(typedValue);
 		} else if (query.contains(LESS)) {
 			return Criteria.where(values[0]).lt(typedValue);
 		} else {
-			throw new UnsupportedTextProcessorException("Cannot parse: " + query);
+			throw new TextProcessorFactoryException("Cannot parse: " + query);
 		}
 	}
 	

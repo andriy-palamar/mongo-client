@@ -6,12 +6,14 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import com.mev.cli.mongoclient.executor.MongoExecutor;
 import com.mev.cli.mongoclient.view.ConsolePrinter;
 
 @Component
+@Profile("!test")
 public class MyCommandLineRunner implements CommandLineRunner {
 
 	private MongoExecutor<List<String>> mongoExecutor;
